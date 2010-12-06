@@ -32,7 +32,8 @@ class User(User):
 	USER_TYPES = (
 		('MEM', 'Member'),
 		('SPO', 'Sponsor'),
-		('DON', 'Donation')
+		('DON', 'Donation'),
+		('ADM', 'Admin/Staff')
 	) 
 	
 	profile_image = models.ImageField(upload_to=get_image_path, blank=True)
