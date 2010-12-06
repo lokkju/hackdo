@@ -3,6 +3,7 @@ import os
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
 
 ADMINS = (
 	# ('Your Name', 'your_email@domain.com'),
@@ -13,7 +14,7 @@ MANAGERS = ADMINS
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-		'NAME': 'db',                      # Or path to database file if using sqlite3.
+		'NAME': PROJECT_PATH + '/db',                      # Or path to database file if using sqlite3.
 		'USER': '',                      # Not used with sqlite3. 
 		'PASSWORD': 'hackdo',                  # Not used with sqlite3.
 		'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
@@ -44,30 +45,28 @@ USE_I18N = True
 # calendars according to the current locale
 USE_L10N = True
 
-ROOT_PATH = os.path.dirname(__file__) # Handy for dynamic paths across Dev and Production
-
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = ROOT_PATH + "/media/"
+MEDIA_ROOT = PROJECT_PATH + "../static/"
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
-MEDIA_URL = 'http://ubuntuvm:8181/media/'
+MEDIA_URL = '/static/'
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/amedia/'
+ADMIN_MEDIA_PREFIX = '/media/'
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'fv0$p-bwy^8ic!4aj%cat+c5$z_ok6ii8f&iae69r7byi!qh5h'
+SECRET_KEY = 'fv0$p-bwr^8ic!4aj%cat+c5$z_ok6ii8f&iae69r7byi!qh5h'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
 	'django.template.loaders.filesystem.Loader',
 	'django.template.loaders.app_directories.Loader',
-#	 'django.template.loaders.eggs.Loader',
+	'django.template.loaders.eggs.Loader',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -78,14 +77,14 @@ MIDDLEWARE_CLASSES = (
 	'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'hackdo.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATE_DIRS = (
 	# Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
 	# Always use forward slashes, even on Windows.
 	# Don't forget to use absolute paths, not relative paths.
-	ROOT_PATH + "/templates",
-	ROOT_PATH + "/hado/templates",
+	PROJECT_PATH + "/templates",
+	PROJECT_PATH + "/hado/templates",
 )
 
 INSTALLED_APPS = (
@@ -101,7 +100,9 @@ INSTALLED_APPS = (
 )
 
 AUTHENTICATION_BACKENDS = (
+	'django.contrib.auth.backends.ModelBackend',
 	'hado.auth_backends.UserModelBackend',
 )
 
 CUSTOM_USER_MODEL = 'hado.User'
+
