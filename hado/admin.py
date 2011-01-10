@@ -4,17 +4,17 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django import forms
 
-
-admin.site.unregister(User) # Deregister the built-in User model
-
 import datetime
 from hado.models import  *
 from hado.forms import *
+from hado.admin_site import HackdoAdmin
 
+hdadmin = HackdoAdmin()
 
 # Inline classes
 class PaymentInline(admin.TabularInline):
 	model = Payment
+	form = PaymentFormAdmin
 	extra = 1
 	
 	fields = ('date_paid', 'amount', 'contract', 'method', 'desc')
@@ -45,7 +45,7 @@ class ContractInline(admin.TabularInline):
 
 # ModelAdmin classes
 class PaymentAdmin(admin.ModelAdmin):
-	form = PaymentForm
+	form = PaymentFormAdmin
 	
 	fields = ('user', 'contract', 'date_paid', 'amount', 'method', 'desc')
 	
@@ -71,8 +71,8 @@ class UserAdmin(admin.ModelAdmin):
 	)
 
 
-admin.site.register(User, UserAdmin)
-admin.site.register(ContractType)
-admin.site.register(Contract, ContractAdmin)
-admin.site.register(Tier)
-admin.site.register(Payment, PaymentAdmin)
+hdadmin.register(User, UserAdmin)
+hdadmin.register(ContractType)
+hdadmin.register(Contract, ContractAdmin)
+hdadmin.register(Tier)
+hdadmin.register(Payment, PaymentAdmin)

@@ -1,9 +1,9 @@
 # Django settings for hackdo project.
-import os
+from local import *
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
-PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
+ROOT_PATH = os.path.realpath(os.path.dirname(__file__))
 
 ADMINS = (
 	# ('Your Name', 'your_email@domain.com'),
@@ -13,10 +13,10 @@ MANAGERS = ADMINS
 
 DATABASES = {
 	'default': {
-		'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-		'NAME': PROJECT_PATH + '/db',                      # Or path to database file if using sqlite3.
+		'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+		'NAME': '',                      # Or path to database file if using sqlite3.
 		'USER': '',                      # Not used with sqlite3. 
-		'PASSWORD': 'hackdo',                  # Not used with sqlite3.
+		'PASSWORD': '',                  # Not used with sqlite3.
 		'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
 		'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
 	}
@@ -47,17 +47,32 @@ USE_L10N = True
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = PROJECT_PATH + "../static/"
+MEDIA_ROOT = "%s/media/" % ROOT_PATH
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
-MEDIA_URL = '/static/'
+MEDIA_URL = '/media/'
+
+# Absolute path to the directory that holds static files.
+# Example: "/home/media/media.lawrence.com/static/"
+STATIC_ROOT = '%s/static/' % ROOT_PATH
+
+# URL that handles the static files served from STATIC_ROOT.
+# Example: "http://media.lawrence.com/static/"
+STATIC_URL = '/static/'
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/media/'
+ADMIN_MEDIA_PREFIX = '/static/admin/'
+
+# A list of locations of additional static files
+STATICFILES_DIRS = (
+	('js', '%s/static/js' % ROOT_PATH),
+	('css', '%s/static/css' % ROOT_PATH),
+	('misc', '%s/static/misc' % ROOT_PATH)
+)
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'fv0$p-bwr^8ic!4aj%cat+c5$z_ok6ii8f&iae69r7byi!qh5h'
@@ -83,8 +98,8 @@ TEMPLATE_DIRS = (
 	# Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
 	# Always use forward slashes, even on Windows.
 	# Don't forget to use absolute paths, not relative paths.
-	PROJECT_PATH + "/templates",
-	PROJECT_PATH + "/hado/templates",
+	"%s/templates" % ROOT_PATH,
+	"%s/hado/templates" % ROOT_PATH,
 )
 
 INSTALLED_APPS = (
@@ -93,12 +108,38 @@ INSTALLED_APPS = (
 	'django.contrib.sessions',
 	'django.contrib.sites',
 	'django.contrib.messages',
+	'django.contrib.staticfiles',
+	'django.contrib.humanize',
 	# Uncomment the next line to enable the admin:
 	'django.contrib.admin',
 	'hado',
 	'south',
 )
 
+# A sample logging configuration. The only tangible logging
+# performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error.
+# See http://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler'
+        }
+    },
+    'loggers': {
+        'django.request':{
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    }
+}
+
+# Config for custom extended User model
 AUTHENTICATION_BACKENDS = (
 	'django.contrib.auth.backends.ModelBackend',
 	'hado.auth_backends.UserModelBackend',
@@ -106,3 +147,8 @@ AUTHENTICATION_BACKENDS = (
 
 CUSTOM_USER_MODEL = 'hado.User'
 
+# Import local settings
+try:
+	from local import *
+except ImportError:
+	pass

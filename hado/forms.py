@@ -9,7 +9,7 @@ import datetime
 
 from hado.models import *
 
-class PaymentForm(forms.ModelForm):
+class PaymentFormAdmin(forms.ModelForm):
 	class Meta:
 		model = Payment
 		
@@ -25,3 +25,20 @@ class PaymentForm(forms.ModelForm):
 				self._errors['amount'] = self.error_class([_('Payment amount ($%s) is not a clean multiple of Contract Fee ($%s)' % (cd.get('amount'), cd.get('contract').tier.fee))])
 				
 		return cd
+		
+		
+
+class PaymentForm(PaymentFormAdmin):
+
+# 	class Meta:
+# 		model = Payment
+# 		exclude = ['user']
+
+	def __init__(self, by_user=None, *args, **kwargs):
+		super(PaymentForm, self).__init__(*args, **kwargs)
+		self.fields['date_paid'].widget = widgets.AdminDateWidget()
+		if by_user is not None:
+			self.fields['contract'].queryset = Contract.objects.filter(user__username=by_user)
+			self.fields['user'].queryset = User.objects.filter(username=by_user)
+
+		

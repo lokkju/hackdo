@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
-from django.contrib.auth.models import User, UserManager
+from django.db.models import Sum
 from django.db.models.signals import pre_save, post_save, post_init, pre_init
+from django.contrib.auth.models import User, UserManager
 from django.core.exceptions import ValidationError
 import datetime, calendar
 # Create your models here.
@@ -10,22 +11,6 @@ import datetime, calendar
 def get_image_path(instance, filename):
 	return os.path.join('users', instance.id, filename) 
 
-# Attaching a post_save signal handler to the Payment model to update the appropriate Contract
-def update_contract_with_payments(sender, **kwargs):
-	c = instance.contract
-	c.update_with_payment(instance)
-
-post_save.connect(update_contract_with_payments, sender="Payment")
-
-def lapsed_check(sender, **kwargs):
-	#Checks the end date of active contract and compares it with today. If contract is lapsed, update the contract status to lapsed.
-	instance = kwargs['instance']
-	if instance.status == u'ACT':
-		if instance.end < datetime.date.today():			
-			instance.status = u'LAP'
-			instance.save()
-				
-post_init.connect(lapsed_check, sender="Contract")
 
 class User(User):
 	"""Custom User model, extending Django's default User"""
@@ -43,11 +28,28 @@ class User(User):
 
 	@property
 	def most_recent_payment(self):
-		return self.payments_made.all()[0]
+		return self.payments_made.all().order_by('-date_paid')[0]
 
-#	@property
-#	def payments(self):
-#		return self.payments_made.order_by('-for_year', '-for_month').all()
+
+	def total_paid(self, ptype=None):
+		'''Returns the total amount the User has paid either in total, or for a specified Contract type'''
+		
+		# Construct the appropriate Queryset
+		if ptype is not None:
+			payments = self.payments_made.filter(contract__ctype__desc=ptype)
+		else:
+			payments = self.payments_made
+		
+		return payments.aggregate(Sum('amount'))['amount__sum'] or 0.0
+		
+		
+	def membership_status(self, pretty=False):
+		'''Returns string (see Contract::CONTRACT_STATUSES) indicating latest Membership status of this User'''
+		if pretty:
+			return self.contracts.filter(ctype__desc='Membership').latest('start').get_status_display()
+		else:
+			return self.contracts.filter(ctype__desc='Membership').latest('start').status
+
 	
 	def __unicode__(self):
 		if self.first_name and self.last_name:
@@ -73,11 +75,18 @@ class Contract(models.Model):
 	)
 
 	start = models.DateField()
-	end = models.DateField()
+	end = models.DateField(blank=True)
 	ctype = models.ForeignKey(ContractType, blank=False, null=True, verbose_name="Contract type", help_text="Locker and Address Use Contracts must use their respective Tiers. Membership contracts can accept all other Tiers")
 	tier = models.ForeignKey("Tier", blank=False, null=True)
 	user = models.ForeignKey(User, blank=False, null=True, related_name="contracts")
 	status = models.CharField(max_length=3, choices=CONTRACT_STATUSES)
+
+	@property
+	def total_paid(self):
+		'''Returns total amount paid due to this Contract'''
+
+		return self.payments.aggregate(Sum('amount'))['amount__sum'] or 0.0
+	
 	
 	def update_with_payment(self, p):
 		# Takes a Payment object, calculates how many month's worth it is, and extends the contract end date accordingly
@@ -112,6 +121,11 @@ class Contract(models.Model):
 	def save(self):
 		# Overridden save() forces the date of self.end to be the last day of that given month.
 		# Eg. if self.end is initially declared as 5 May 2010, we now force it to become 31 May 2010 before actually save()'ing the object.
+		
+		# But first, is self.end even specified?
+		if not self.end:
+			self.end = self.start
+		
 		last_day = calendar.monthrange(self.end.year, self.end.month)[1]
 		self.end = datetime.date(self.end.year, self.end.month, last_day)
 		
@@ -183,7 +197,7 @@ class Payment(models.Model):
 	amount = models.FloatField(default=0.0)
 	method = models.CharField(max_length=3, choices=PAYMENT_METHODS, default='EFT')
 	contract = models.ForeignKey(Contract, blank=False, null=True, related_name="payments")
-	desc = models.CharField(max_length=255, blank=True)
+	desc = models.CharField(max_length=255, blank=True, help_text="Eg. Cheque or transaction number, if applicable")
 	user = models.ForeignKey(User, blank=False, null=True, related_name="payments_made")
 	
 	def __unicode__(self):
@@ -195,3 +209,26 @@ class Locker(models.Model):
 	user = models.ForeignKey(User, blank=False, null=True, related_name="locker")
 	num = models.IntegerField()
 	
+
+# Attaching a post_save signal handler to the Payment model to update the appropriate Contract
+def update_contract_with_payments(sender, **kwargs):
+	payment = kwargs['instance']
+	c = payment.contract
+	c.update_with_payment(payment)
+
+post_save.connect(update_contract_with_payments, sender=Payment)
+
+def lapsed_check(sender, **kwargs):
+	'''Checks the end date of active contract and compares it with today. If contract is lapsed, update the contract status to lapsed.'''
+
+	contract = kwargs['instance']	
+	if contract.status == u'ACT':
+		if contract.end < datetime.date.today():			
+			contract.status = u'LAP'
+			contract.save()
+			
+	elif contract.status == u'LAP' and contract.end > datetime.date.today():
+		contract.status = u'ACT'
+		contract.save()
+				
+post_init.connect(lapsed_check, sender=Contract)
